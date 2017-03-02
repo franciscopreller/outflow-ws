@@ -1,119 +1,169 @@
 class AnsiHTML {
-    static get styles() {
-        return {
-            bold: "font-weight",
-            underline: "text-decoration",
-            color: "color",
-            background: "background"
-      };
+
+    /**
+     * The default ansi code
+     */
+    static get defaultAnsiCode() {
+        return { 
+            types: [],
+            foreground: 'white',
+            background: 'black',
+        };
     }
-    // not implemented: italic, blink, invert, strikethrough
-    static get table() {
+
+    /**
+     * List of supported ansi codes
+     */
+    static get ansiCodes() {
         return {
-            0: null,
-            1: { bold: true },
-            3: { italic: true },
-            4: { underline: true },
-            5: { blink: true },
-            6: { blink: true },
-            7: { invert: true },
-            9: { strikethrough: true },
-            23: { italic: false },
-            24: { underline: false },
-            25: { blink: false },
-            27: { invert: false },
-            29: { strikethrough: false },
-            30: { color: 'grey' },
-            31: { color: 'red' },
-            32: { color: 'green' },
-            33: { color: 'yellow' },
-            34: { color: 'blue' },
-            35: { color: 'magenta' },
-            36: { color: 'cyan' },
-            37: { color: 'white' },
-            39: { color: null },
-            40: { background: 'black' },
-            41: { background: 'red' },
-            42: { background: 'green' },
-            43: { background: 'yellow' },
-            44: { background: 'blue' },
-            45: { background: 'magenta' },
-            46: { background: 'cyan' },
-            47: { background: 'white' },
-            49: { background: null },
-        }
+            '0': { reset: true },
+            '1': { type: 'bold' },
+            '3': { type: 'italic' },
+            '4': { type: 'underline' },
+            '5': { type: 'blink' },
+            '7': { type: 'invert' },
+            '9': { type: 'strikethrough' },
+            '30': { foreground: 'grey' },
+            '31': { foreground: 'red' },
+            '32': { foreground: 'green' },
+            '33': { foreground: 'yellow' },
+            '34': { foreground: 'blue' },
+            '35': { foreground: 'magenta' },
+            '36': { foreground: 'cyan' },
+            '37': { foreground: 'white' },
+            '40': { background: 'black' },
+            '41': { background: 'red' },
+            '42': { background: 'green' },
+            '43': { background: 'yellow' },
+            '44': { background: 'blue' },
+            '45': { background: 'magenta' },
+            '46': { background: 'cyan' },
+            '47': { background: 'white' },
+        };
     };
-    static parse(str) {
-        let char;
-        let collect = false;
-        let openTags = 0;
-        let props = {};
-        let collected = '';
-        let parsed = '';
-        let styledText = '';
+
+    /**
+     * Parses an ansi string into separate line objects
+     * 
+     * @param {*} str
+     */
+    static toLineObjects({ str }) {
+        let char, lastCodesObj;
+        let lineArrays = [];
+        let lineStr = '';
         for (let i = 0; i < str.length; i++) {
             char = str[i];
             switch (char) {
-                case ' ':
-                    if (!collect) {
-                        parsed += '&nbsp;';
-                    }
+                case '\n':
+                    let linesObj = this.toObject({ ansiCodes: lastCodesObj, str: lineStr });
+                    lastCodesObj = linesObj[linesObj.length-1].codes;
+                    lineArrays.push(linesObj);
+                    lineStr = '';
                     break;
-                case '\u001b':
-                    collect = (str[i+1] && str[i+1] === '[');
-                    break;
-                case '[':
-                    if (collect) break;
-                case 'm':
-                    if (collect) {
-                        collect = false;
-                        if (collected !== '0') {
-                            props = {};
-                            openTags++
-                            props = Object.assign(props, collected.split(';').map(c => this.table[c]).reduce((a, b) => {
-                                for (let k in b) {
-                                    a[k] = b[k];
-                                }
-                                return a;
-                            }, {}));
-                            parsed += this.openTag(props);
-                        } else {
-                            parsed += this.closeTags(openTags);
-                            openTags = 0;
-                        }
-                        collected = '';
-                        break;
-                    }
                 default:
-                    if (collect) collected += char;
-                    else parsed += char;
+                    lineStr += char;
                     break;
             }
         }
-        return parsed.replace(/(?:\r\n|\r|\n)/g, '<br>');
+        if (lineStr.length) {
+            lineArrays.push(this.toObject({ ansiCodes: lastCodesObj, str: lineStr }));
+            lineStr = '';
+        }
+        return lineArrays;
     }
-    static style(props) {
-        let key, val, style = [];
-        for (let key in props) {
-            val = props[key];
-            if (!val) continue;
-            if (val == true) {
-                style.push(this.styles[key] + ':' + key);
-            } else {
-                style.push(this.styles[key] + ':' + val);
+
+    /**
+     * Parses a string into an array of objects which make up a single line, 
+     * each object has theior own ansi codes or params
+     * 
+     * If ansiCodes are passed, then those will be merged with any new ansi codes found during parsing
+     * 
+     * @param {*} ansiCodes 
+     * @param {*} str
+     */
+    static toObject({ ansiCodes = this.defaultAnsiCode, str }) {
+        let started;
+        let text = '';
+        let output = [{
+            codes: ansiCodes,
+            text: '',
+        }];
+        for (let i = 0; i < str.length; i++) {
+            let char = str[i];
+            let index = (output.length - 1);
+            switch (char) {
+                case '\u001b':
+                    // Only on the first iteration should we skip this
+                    let codes = this.getCodes({ str, index: i, ansiCodes });
+                    i = codes.index;
+                    if (codes) {
+                        if (started) {
+                            output.push({
+                                codes: codes.code,
+                                text: '',
+                            });
+                        } else {
+                            output[index].codes = codes.code;
+                            started = true;
+                        }
+                    }
+                    break;
+                default:
+                    output[index].text += char;
+                    break;
             }
         }
-        return style.join(';');
+        return output;
     }
-    static openTag(props) {
-        return '<span style="' + this.style(props) + '">';
-    }
-    static closeTags(num) {
-        let output = [];
-        for (let i = 0; i < num; i++) {
-            output.push('</span>');
+
+    /**
+     * It parses a string forward from a starting index and terminates when no more ansi codes
+     * can be found in succession. If ansi codes are passed initially, they will be merged
+     * with any new ansi codes found during the parsing.
+     * 
+     * @param {*} str 
+     * @param {*} index
+     * @param {*} ansiCodes
+     */
+    static getCodes({ str, index, ansiCodes = this.defaultAnsiCode }) {
+        let collect, output;
+        let code = '', char = '';
+        let codeBuffer = Object.assign({}, ansiCodes)
+        for (let i = index; i < str.length; i++) {
+            output = { index: i, code: codeBuffer };
+            char = str[i];
+            switch (true) {
+                case (char === '\u001b' && str[i+1] && str[i+1] === '['):
+                    i++; // Skip next character, it will be [ operator
+                    output.index = i;
+                    break;
+                case (char === ';'):
+                case (char === 'm'):
+                    let style = Object.assign({}, this.ansiCodes[code]);
+                    if (style) {
+                        if (style.reset) {
+                            codeBuffer = Object.assign({}, this.defaultAnsiCode);
+                        } else if (style.type) {
+                            codeBuffer.types.push(style.type);
+                        } else if (style.background) {
+                            codeBuffer.background = style.background;
+                        } else if (style.foreground) {
+                            codeBuffer.foreground = style.foreground;
+                        }
+                        code = '';
+                    }
+                    break;
+                case (/[0-9]/.test(char)):
+                    code += char;
+                    break;
+                default:
+                    // Returns back one index
+                    output.index = (i - 1);
+                    return output;
+
+            }
         }
-        return output.join('');
+        return output;
     }
 }
 module.exports = AnsiHTML;

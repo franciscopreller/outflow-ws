@@ -7,12 +7,17 @@
     "express": "^4.14.1",
     "forever": "^0.14.2",
     "lodash": "^4.17.4",
+    "merge-deep": "^3.0.0",
     "socket-io": "^1.0.0",
     "socket.io": "^1.7.2",
     "telnet-stream": "^0.0.4",
     "uuid": "^3.0.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0",
+    "sinon": "^1.17.7"
+  },
   "scripts": {
     "start": "forever start index.js",
     "test": "echo \"Error: no test specified\" && exit 1"

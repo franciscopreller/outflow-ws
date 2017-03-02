@@ -5,6 +5,7 @@ const TelnetInput = require('telnet-stream').TelnetInput;
 const TelnetOutput = require('telnet-stream').TelnetOutput;
 const EventEmitter = require('events').EventEmitter;
 const ansiHTML = require('./ansiHtml');
+const fs = require('fs');
 
 class Connector {
     constructor(connection, socket) {
@@ -17,6 +18,7 @@ class Connector {
         this.data   = '';
         this.conn   = null;
         this.connected = false;
+        this.timestamp = Date.now();
 
         // Bindings
         this.bindOutputProcessing();
@@ -63,17 +65,14 @@ class Connector {
         });
     }
     sendOutput(output) {
-        const text = ansiHTML.parse(output.toString());
+        this.logOutputToFile(output.toString());
+        const lines = ansiHTML.toLineObjects({ str: output.toString() });
         const emitString = `server.output.${this.uuid}`;
 
-        console.log(`Emitting data to ${this.host}: ${emitString}`);
-        console.log(output.toString());
-        this.socket.emit('server.output', { text, uuid: this.uuid });
+        this.socket.emit('server.output', { lines, uuid: this.uuid });
     }
     processOutput(output) {
-        // Output to client
         if (!this.connected || this.data !== '') {
-            console.log(`${this.host} received but not connected, caching...`);
             this.data += output;
         } else {
             this.sendOutput(output)
@@ -81,6 +80,24 @@ class Connector {
     }
     processCommand(command) {
         this.output.write(command + '\n');
+    }
+    logOutputToFile(output) {
+        const fileName = `outflow_${this.host}_${this.timestamp}.log`;
+        const file = `${global.logPath}/${fileName}`;
+        fs.open(file, 'a+', (err, fd) => {
+            console.log('Logging to file:', file);
+            if (err) {
+                console.error(`Could not open file ${file}:`, err.message);
+            } else {
+                fs.write(fd, output, { encoding: 'utf8' }, (err) => {
+                    if (err) {
+                        console.error(`Could not write to file ${file}`, err.message);
+                    } else {
+                        console.log('Logged successful');
+                    }
+                });
+            }
+        });
     }
 }
 module.exports = Connector;
