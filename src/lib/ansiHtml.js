@@ -4,7 +4,7 @@ class AnsiHTML {
      * The default ansi code
      */
     static get defaultAnsiCode() {
-        return { 
+        return {
             types: [],
             foreground: 'white',
             background: 'black',
@@ -56,7 +56,7 @@ class AnsiHTML {
             switch (char) {
                 case '\n':
                     let linesObj = this.toObject({ ansiCodes: lastCodesObj, str: lineStr });
-                    lastCodesObj = linesObj[linesObj.length-1].codes;
+                    lastCodesObj = linesObj[linesObj.length - 1].codes;
                     lineArrays.push(linesObj);
                     lineStr = '';
                     break;
@@ -126,19 +126,19 @@ class AnsiHTML {
      * @param {*} ansiCodes
      */
     static getCodes({ str, index, ansiCodes = this.defaultAnsiCode }) {
-        let collect, output;
+        let collect, output, prevChar;
         let code = '', char = '';
-        let codeBuffer = Object.assign({}, ansiCodes)
+        let codeBuffer = Object.assign({}, ansiCodes);
         for (let i = index; i < str.length; i++) {
             output = { index: i, code: codeBuffer };
             char = str[i];
+            prevChar = str[i - 1] || null;
             switch (true) {
-                case (char === '\u001b' && str[i+1] && str[i+1] === '['):
+                case (char === '\u001b' && str[i + 1] && str[i + 1] === '['):
                     i++; // Skip next character, it will be [ operator
                     output.index = i;
                     break;
-                case (char === ';'):
-                case (char === 'm'):
+                case (char === ';' || char === 'm'):
                     let style = Object.assign({}, this.ansiCodes[code]);
                     if (style) {
                         if (style.reset) {
@@ -153,7 +153,7 @@ class AnsiHTML {
                         code = '';
                     }
                     break;
-                case (/[0-9]/.test(char)):
+                case (prevChar && /[0-9]/.test(char) && /[0-9;\[]/.test(prevChar)):
                     code += char;
                     break;
                 default:
