@@ -6,12 +6,12 @@ RUN rm /home/app -rf
 RUN mkdir -p /home/app/
 WORKDIR /home/app
 
-# Load Package JSON
-ADD ./package.json /home/app/package.json
-RUN npm install
-
 # Install app dependencies
 RUN npm install -g forever@0.14.2
+
+# Load Package JSON
+ADD ./package.json /home/app/package.json
+RUN npm install --only-production
 
 # Load the source into the docker image
 ADD . /home/app
