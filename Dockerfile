@@ -1,4 +1,4 @@
-FROM mhart/alpine-node:7.5.0
+FROM node:7.7.4
 MAINTAINER Francisco Preller <francisco.preller@gmail.com>
 
 ## Setup userspace

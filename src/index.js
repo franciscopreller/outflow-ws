@@ -1,31 +1,33 @@
-// const express = require('express');
-// const app = express();
-// const server = require('http').createServer(app);
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 const PATH = '/ws';
-const WebSocket = require('ws');
-const server = require('http').createServer((request, response) => {
-  console.log((new Date()) + ' Received request for ' + request.url);
-  response.writeHead(200, {'Content-Type': 'text/plain'});
-  response.write("Welcome to Outflow!\n\n");
-  response.end("Thanks for visiting us! \n");
-});
-server.listen(PORT, '0.0.0.0', () => {
-  console.log((new Date()) + ' Server is listening on port 8080');
+const SocketCluster = require('socketcluster').SocketCluster;
+
+// Start SocketCluster Server
+const socketCluster = new SocketCluster({
+  workers: 1,
+  brokers: 1,
+  port: PORT,
+  path: PATH,
+  appName: 'outflow',
+  wsEngine: 'uws',
+
+  /* A JS file which you can use to configure each of your
+   * workers/servers - This is where most of your backend code should go
+   */
+  workerController: __dirname + '/worker.js',
+
+  /* JS file which you can use to configure each of your
+   * brokers - Useful for scaling horizontally across multiple machines (optional)
+   */
+  brokerController: __dirname + '/broker.js',
+
+  // Whether or not to reboot the worker in case it crashes (defaults to true)
+  rebootWorkerOnCrash: true
 });
 
-const wss = new WebSocket.Server({ server, path: PATH, autoAcceptConnections: false });
-console.log(`Etablishing websocket connection on port '${PORT}' on path '${PATH}'`);
-wss.on('connection', (ws) => {
-  console.log('connection established', ws);
-  ws.on('message', (message) => {
-    console.log(`Received message: ${message}`);
+socketCluster.on('workerMessage', (id, data) => {
+  console.log('Message received from worker', {
+    id,
+    data,
   });
 });
-wss.on('error', (error) => {
-  console.error('Error with socket connection', error);
-});
-
-// server.listen(8080, () => {
-//   console.log('Listening on %d', server.address().port);
-// });
