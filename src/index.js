@@ -10,6 +10,7 @@ const socketCluster = new SocketCluster({
   path: PATH,
   appName: 'outflow',
   wsEngine: 'uws',
+  perMessageDeflate: true,
 
   /* A JS file which you can use to configure each of your
    * workers/servers - This is where most of your backend code should go
