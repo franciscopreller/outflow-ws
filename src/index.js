@@ -1,10 +1,11 @@
 const PORT = process.env.PORT || 8080;
 const PATH = '/ws';
+const os = require('os');
 const SocketCluster = require('socketcluster').SocketCluster;
 
 // Start SocketCluster Server
 const socketCluster = new SocketCluster({
-  workers: 1,
+  workers: os.cpus().length,
   brokers: 1,
   port: PORT,
   path: PATH,

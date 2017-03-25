@@ -49,7 +49,7 @@ class AnsiParse {
    */
   static toLineObjects({str}) {
     let char;
-    let lastCodesObj = {};
+    let lastCodesObj = this.defaultAnsiCode;
     let lineArrays = [];
     let lineStr = '';
     for (let i = 0; i < str.length; i++) {
@@ -68,7 +68,6 @@ class AnsiParse {
     }
     if (lineStr.length) {
       lineArrays.push(this.toObject({ansiCodes: lastCodesObj, str: lineStr}));
-      lineStr = '';
     }
     return lineArrays;
   }
@@ -84,7 +83,6 @@ class AnsiParse {
    */
   static toObject({ansiCodes = this.defaultAnsiCode, str}) {
     let started;
-    let text = '';
     let output = [{
       codes: ansiCodes,
       text: '',
@@ -127,7 +125,7 @@ class AnsiParse {
    * @param {*} ansiCodes
    */
   static getCodes({str, index, ansiCodes = this.defaultAnsiCode}) {
-    let collect, output, prevChar;
+    let output, prevChar;
     let code = '', char = '';
     let codeBuffer = Object.assign({}, ansiCodes);
     for (let i = index; i < str.length; i++) {
