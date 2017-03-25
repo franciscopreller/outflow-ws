@@ -25,6 +25,6 @@ module.exports.run = (worker) => {
     });
 
     // Bind other events
-    events.bindWebsocketHandlers(socket);
+    events.bindHandlers(socket);
   });
 };

@@ -1,11 +1,12 @@
 const _ = require('lodash');
+const fs = require('fs');
 const net = require('net');
 const TelnetInput = require('telnet-stream').TelnetInput;
 const TelnetOutput = require('telnet-stream').TelnetOutput;
-const ansiHTML = require('./ansiHtml');
-const fs = require('fs');
+const ansiHTML = require('./ansiParse');
+const actions = require('../handlers/session/actions');
 
-class Connector {
+class Session {
   constructor(connection, socket) {
     this.socket = socket;
     this.host = connection.host;
@@ -46,6 +47,10 @@ class Connector {
     this.conn.on('error', (err) => {
       console.log('Connection error', err);
     });
+  }
+
+  emit(data) {
+    this.socket.emit('ws.message', data);
   }
 
   bindCommandHandler() {
@@ -103,12 +108,17 @@ class Connector {
 
   sendOutput(output) {
     const lines = ansiHTML.toLineObjects({str: output.toString()});
-    console.log('Sending output', output.toString());
-    this.socket.emit('connection.output', {lines, uuid: this.uuid});
+    this.emit(actions.sessionOutput({
+      lines,
+      uuid: this.uuid,
+    }));
   }
 
   sendError(error) {
-    this.socket.emit('connection.error', { error });
+    this.emit(actions.sessionError({
+      error,
+      uuid: this.uuid,
+    }));
   }
 
   receiveCommand(command) {
@@ -131,4 +141,4 @@ class Connector {
     });
   }
 }
-module.exports = Connector;
+module.exports = Session;
