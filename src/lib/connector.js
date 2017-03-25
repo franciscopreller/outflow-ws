@@ -26,17 +26,17 @@ class Connector {
   }
 
   connect() {
-    this.conn = net
-      .createConnection(this.port, this.host, (err) => {
-        if (err) {
-          // send error
-          console.error(err);
-        }
-
+    this.conn = net.createConnection(this.port, this.host, (err) => {
+      if (err) {
+        // Send error
+        console.error('Error connecting to remote server', err);
+        this.sendError(err);
+      } else {
         // Bind IO
         this.conn.pipe(this.input);
         this.output.pipe(this.conn);
-      });
+      }
+    });
 
     this.conn.on('close', () => {
       console.log(`(${this.host}) lost connection...`);
@@ -105,6 +105,10 @@ class Connector {
     const lines = ansiHTML.toLineObjects({str: output.toString()});
     console.log('Sending output', output.toString());
     this.socket.emit('connection.output', {lines, uuid: this.uuid});
+  }
+
+  sendError(error) {
+    this.socket.emit('connection.error', { error });
   }
 
   receiveCommand(command) {
