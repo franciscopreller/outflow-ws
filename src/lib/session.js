@@ -54,8 +54,9 @@ class Session {
   }
 
   bindCommandHandler() {
-    this.socket.on(`server.command.${this.uuid}`, (data) => {
-      this.receiveCommand(data.command);
+    this.socket.on(`session.command.${this.uuid}`, (data) => {
+      console.log('Received command', data.payload.command);
+      this.receiveCommand(data.payload.command);
     });
   }
 
