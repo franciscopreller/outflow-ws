@@ -16,6 +16,7 @@ class Session {
     this.buffer = '';
     this.conn = null;
     this.timestamp = Date.now();
+    this.timeout = null;
 
     // Telnet handlers
     this.input = new TelnetInput();
@@ -62,16 +63,17 @@ class Session {
 
   bindOutputProcessing() {
     this.input.on('data', (data) => {
-      // Buffer output until last two characters are carriage returns
       this.buffer += data;
-      const lastChar = data[data.length - 1];
-      const secondLastChar = (data[data.length - 1]) ? data[data.length - 1] : null;
 
-      // On two consecutive carriage returns, process the output and cear the buffer
-      if (lastChar === 32 && secondLastChar === 32) {
+      // There appears to be no sure-fire way to tell when data packets are done streaming
+      // currently, so this is a bit of a hack to ensure it's done receiving, by using a
+      // 10 millisecond delay before sending it back to the client, if more data comes in
+      // before that delay, then keep buffering and add another 10 millisecond delay
+      clearTimeout(this.timeout);
+      this.timeout = setTimeout(() => {
         this.sendOutput(this.buffer);
         this.buffer = '';
-      }
+      }, 10);
     });
 
     // Telnet events

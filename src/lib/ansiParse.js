@@ -46,8 +46,9 @@ class AnsiParse {
    * Parses an ansi string into separate line objects
    *
    * @param {*} str
+   * @param {*} carryOver
    */
-  static toLineObjects({str}) {
+  static toLineObjects({str, carryOver = ''}) {
     let char;
     let lastCodesObj = this.defaultAnsiCode;
     let lineArrays = [];
@@ -68,6 +69,7 @@ class AnsiParse {
     }
     if (lineStr.length) {
       lineArrays.push(this.toObject({ansiCodes: lastCodesObj, str: lineStr}));
+      //carryOver = lineStr;
     }
     return lineArrays;
   }
