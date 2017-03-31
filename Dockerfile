@@ -1,4 +1,4 @@
-FROM node:7.7.4
+FROM node:7.8
 MAINTAINER Francisco Preller <francisco.preller@gmail.com>
 
 ## Setup userspace
@@ -11,7 +11,8 @@ RUN npm install -g forever@0.14.2
 
 # Load Package JSON
 ADD ./package.json /home/app/package.json
-RUN npm install --only-production
+ADD ./yarn.lock /home/app/yarn.lock
+RUN yarn install --production
 
 # Load the source into the docker image
 ADD . /home/app
