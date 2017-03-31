@@ -15,6 +15,18 @@ const handlerNames = getHandlerNames();
  */
 const handlers = getHandlers();
 
+function subscriberHandler(socket) {
+  return (data) => {
+    try {
+      const payload = JSON.parse(data);
+      console.log(`(${socket.id}) Got data funneled into subscriber`, payload);
+      socket.emit('ws.message', payload);
+    } catch (error) {
+      console.error('Could not parse JSON in subscriberHandler');
+    }
+  };
+}
+
 /**
  * Generic message handler
  *
@@ -100,3 +112,4 @@ exports.handlerNames = handlerNames;
 exports.messageHandler = messageHandler;
 exports.handleConnection = handleConnection;
 exports.disconnectHandler = disconnectHandler;
+exports.subscriberHandler = subscriberHandler;

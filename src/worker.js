@@ -19,9 +19,10 @@ module.exports.run = (worker) => {
 
   // Handle real-time connections and listen for events
   scServer.on('connection', (socket) => {
-    const sub = context.socket('SUB');
     const socketId = socket.id;
+    const sub = context.socket('SUB');
     Handlers.handleConnection(socketId);
+    sub.on('data', Handlers.subscriberHandler(socket));
 
     // Socket bindings
     socket.on('disconnect', Handlers.disconnectHandler(socketId));
