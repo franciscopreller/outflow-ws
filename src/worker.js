@@ -17,14 +17,14 @@ module.exports.run = (worker) => {
   // Attach app to httpServer
   httpServer.on('request', app);
 
-  /*
-   In here we handle our incoming realtime connections and listen for events.
-   */
+  // Handle real-time connections and listen for events
   scServer.on('connection', (socket) => {
-    console.log(`User connected from socket ${socket.id}`);
-    socket.on('disconnect', () => {
-      console.log(`User disconnected from socket ${socket.id}`);
-    });
-    socket.on('message', Handlers.messageHandler(socket, context));
+    const sub = context.socket('SUB');
+    const socketId = socket.id;
+    Handlers.handleConnection(socketId);
+
+    // Socket bindings
+    socket.on('disconnect', Handlers.disconnectHandler(socketId));
+    socket.on('message', Handlers.messageHandler(socketId, sub, context));
   });
 };
