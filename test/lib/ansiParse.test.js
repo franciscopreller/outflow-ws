@@ -1,4 +1,4 @@
-const ansiHTML = require('../../src/lib/ansiHtml');
+const ansiHTML = require('../../src/lib/ansiParse');
 
 const output = `[0;37;40m> [31mWide Hallway[0;37;40m
    This wide hallway is illuminated simply by torch sconces filled with 
@@ -17,7 +17,7 @@ describe('Parse ANSI', () => {
     it('should return correct ansiCodes', () => {
         const ansiCodes = ansiHTML.getCodes({ str: output2, index: 0 });
         expect(ansiCodes).to.have.all.keys('code', 'index');
-        expect(ansiCodes.code).to.have.all.keys('types', 'background', 'foreground');
+        expect(ansiCodes.code).to.have.all.keys('types', 'bg', 'fg');
         expect(ansiCodes.index).to.equal(8);
         expect(ansiCodes.code.types).to.include('bold');
     });

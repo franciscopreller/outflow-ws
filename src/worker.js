@@ -1,7 +1,9 @@
+const RABBIT_URL = process.env.RABBIT_URL || 'amqp://rabbitoutflow:unsafepassword@rabbitmq';
 const express = require('express');
 const path = require('path');
 const healthChecker = require('sc-framework-health-check');
-const events = require('./events');
+const context = new require('rabbit.js').createContext(RABBIT_URL);
+const Handlers = require('./handlers');
 
 module.exports.run = (worker) => {
   console.log('   >> Worker PID:', process.pid);
@@ -15,16 +17,15 @@ module.exports.run = (worker) => {
   // Attach app to httpServer
   httpServer.on('request', app);
 
-  /*
-   In here we handle our incoming realtime connections and listen for events.
-   */
+  // Handle real-time connections and listen for events
   scServer.on('connection', (socket) => {
-    console.log(`User connected from socket ${socket.id}`);
-    socket.on('disconnect', () => {
-      console.log(`User disconnected from socket ${socket.id}`);
-    });
+    const socketId = socket.id;
+    const sub = context.socket('SUB');
+    Handlers.handleConnection(socketId);
+    sub.on('data', Handlers.subscriberHandler(socket));
 
-    // Bind other events
-    events.bindWebsocketHandlers(socket);
+    // Socket bindings
+    socket.on('disconnect', Handlers.disconnectHandler(socketId));
+    socket.on('message', Handlers.messageHandler(socketId, sub, context));
   });
 };
