@@ -1,22 +1,25 @@
 const constants = require('./constants');
+const Handlers = require('../index');
 
 module.exports = {
 
-  [constants.SESSION_CONNECT]: (sub, context, data) => {
-    // Validate payload
+  /**
+   * Connects the main session listener when it receives a SESSION_CONNECT event
+   *
+   * @param socket
+   * @param context
+   * @param data
+   */
+  [constants.SESSION_CONNECT]: (socket, context, data) => {
     if (data.payload && data.payload.connection && data.payload.connection.uuid) {
+      const sub = context.socket('PULL');
       const { uuid } = data.payload.connection;
-      const pub = context.socket('PUSH');
 
-      // Connect to main listener
+      // Add data subscriber
+      sub.on('data', Handlers.subscriberHandler(socket));
+
+      // Connect to session listener
       sub.connect(`${constants.SESSION_LISTENER}.${uuid}`);
-
-      // Send the connection request to the telnet server
-      pub.connect(constants.SESSION_CONNECT, () => {
-        console.log('Sending to session.connect', JSON.stringify(data.payload));
-        pub.write(JSON.stringify(data.payload), 'utf-8');
-      });
-
     } else {
       console.error('No data received for server connection...');
     }
