@@ -8,7 +8,6 @@ module.exports.run = (broker) => {
   // automatic horizontal scalability.
   // This is mostly intended for the Kubernetes deployment of SocketCluster - In this case,
   // The clustering/sharding all happens automatically.
-
   if (broker.options.clusterStateServerHost) {
     scClusterBrokerClient.attach(broker, {
       stateServerHost: broker.options.clusterStateServerHost,

@@ -58,21 +58,33 @@ function messageHandler(socket, context) {
 /**
  * Handles all new socket connection
  *
+ * @param redis
  * @param socketId
  */
-function handleConnection(socketId) {
-  console.log(`User connected from socket ${socketId}`);
+function handleConnection(redis, socketId) {
+  const connectionObj = {};
+  redis.set(`connection.${socketId}`, JSON.stringify(connectionObj)).then(() => {
+    console.log(`User connected from socket ${socketId}`);
+  }).catch((error) => {
+    console.error('Could not create connection in cache', error);
+  });
+
 }
 
 /**
  * Handles all socket disconnections
  *
+ * @param redis
  * @param socketId
  * @returns {function()}
  */
-function disconnectHandler(socketId) {
+function disconnectHandler(redis, socketId) {
   return () => {
-    console.log(`User disconnected from socket ${socketId}`);
+    redis.del(`connection.${socketId}`).then(() => {
+      console.log(`User disconnected from socket ${socketId}`);
+    }).catch((error) => {
+      console.error('Could not remove connection from cache', error);
+    });
   };
 }
 
