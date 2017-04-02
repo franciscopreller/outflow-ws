@@ -19,7 +19,6 @@ function subscriberHandler(socket) {
   return (data) => {
     try {
       const payload = JSON.parse(data);
-      console.log(`(${socket.id}) Got data funneled into subscriber`, payload);
       socket.emit('ws.message', payload);
     } catch (error) {
       console.error('Could not parse JSON in subscriberHandler');
@@ -30,29 +29,34 @@ function subscriberHandler(socket) {
 /**
  * Generic message handler
  *
- * @param socketId
- * @param sub
+ * @param socket
  * @param context
  * @returns {function(*)}
  */
-function messageHandler(socketId, sub, context) {
+function messageHandler(socket, context) {
   return (data) => {
     let msg = {};
     try {
       msg = Object.assign({}, JSON.parse(data));
-      console.log(`(${socketId}) Processing message:`, msg);
     } catch (err) {}
 
-    // if the message is marked as an event
-    if (msg.event && handlers && handlers[msg.event]) {
-      console.log(`Invoking method: ${msg.event} with data:`, msg.data);
-      handlers[msg.event](sub, context, msg.data);
+    // if the message is marked as an event which has middleware, use that middleware handler
+    if (msg.event && msg.event.charAt(0) !== '#') {
+      if (handlers && handlers[msg.event]) {
+        handlers[msg.event](socket, context, msg.data);
+      }
+
+      // Send the connection request to the telnet server
+      const pub = context.socket('PUSH');
+      pub.connect(msg.event, () => {
+        pub.write(JSON.stringify(msg.data.payload), 'utf-8');
+      });
     }
-  }
+  };
 }
 
 /**
- * Handles all new socket connections
+ * Handles all new socket connection
  *
  * @param socketId
  */
