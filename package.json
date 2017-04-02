@@ -1,0 +1,30 @@
+{
+  "name": "outflow-ws",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.15.2",
+    "forever": "^0.14.2",
+    "glob": "^7.1.1",
+    "ioredis": "^2.5.0",
+    "lodash": "^4.17.4",
+    "rabbit.js": "^0.4.4",
+    "sc-cluster-broker-client": "^1.0.5",
+    "sc-framework-health-check": "^1.0.0",
+    "socketcluster": "^5.9.0",
+    "uuid": "^3.0.1",
+    "uws": "^0.13.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0",
+    "sinon": "^1.17.7"
+  },
+  "scripts": {
+    "start": "forever start index.js",
+    "test": "mocha --recursive --require './test/helpers/chai.js' './test/**/*.test.js'"
+  },
+  "author": "",
+  "license": "ISC"
+}
