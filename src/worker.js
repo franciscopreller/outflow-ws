@@ -17,7 +17,7 @@ module.exports.run = (worker) => {
   // Attach app to httpServer
   httpServer.on('request', app);
 
-  // Handle real-time connections and listen for events
+  // Handle real-time connection and listen for events
   scServer.on('connection', (socket) => {
     const socketId = socket.id;
     Handlers.handleConnection(socketId);

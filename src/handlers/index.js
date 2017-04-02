@@ -41,7 +41,7 @@ function messageHandler(socket, context) {
     } catch (err) {}
 
     // if the message is marked as an event which has middleware, use that middleware handler
-    if (msg.event) {
+    if (msg.event && msg.event.charAt(0) !== '#') {
       if (handlers && handlers[msg.event]) {
         handlers[msg.event](socket, context, msg.data);
       }
@@ -56,7 +56,7 @@ function messageHandler(socket, context) {
 }
 
 /**
- * Handles all new socket connections
+ * Handles all new socket connection
  *
  * @param socketId
  */
