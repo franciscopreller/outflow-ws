@@ -28,7 +28,7 @@ module.exports.run = (worker) => {
     Handlers.handleSubscriber(socket, sub);
 
     // Socket bindings
-    socket.on('disconnect', Handlers.disconnectHandler(socket, redis, sub));
+    socket.on('disconnect', Handlers.disconnectHandler(context, socket, redis, sub));
     socket.on('message', Handlers.messageHandler(socket, redis, context));
   });
 

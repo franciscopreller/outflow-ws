@@ -93,13 +93,16 @@ function handleConnection(socket, redis) {
 /**
  * Handles all socket disconnections
  *
+ * @param context
  * @param socket
  * @param redis
  * @param sub
  * @returns {function()}
  */
-function disconnectHandler(socket, redis, sub) {
-  return () => utils.deleteUserIdFromSocketId(redis, socket.id)
+function disconnectHandler(context, socket, redis, sub) {
+  return () => utils.getUserIdFromSocketId(redis, socket.id)
+    .then((userId) => utils.requestUserCleanup(context, userId))
+    .then(() => utils.deleteUserIdFromSocketId(redis, socket.id))
     .catch((error) => console.error('Could not remove connection from cache', error))
     .then(() => {
       console.log(`User disconnected from socket ${socket.id}`);

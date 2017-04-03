@@ -1,3 +1,11 @@
+function requestUserCleanup(context, userId) {
+  const pub = context.socket('PUSH');
+  pub.connect('auth.cleanup', () => {
+    pub.write(JSON.stringify({ userId }), 'utf8');
+    pub.close();
+  });
+}
+
 function publish(context, queueName, payload) {
   const pub = context.socket('PUB');
   pub.connect(queueName, () => {
@@ -22,21 +30,9 @@ function deleteUserIdFromSocketId(redis, socketId) {
   return redis.del(`socket.${socketId}.userId`);
 }
 
-function removeQueuesForUser(redis, context, userId) {
-  const key = `queues.${userId}`;
-  return redisGet(redis, key).then((queues) => {
-    if (Array.isArray(queues)) {
-      queues.forEach((queueName) => {
-        publish(context, queueName, '#close');
-      });
-    }
-    return redis.del(key);
-  });
-}
-
 exports.publish = publish;
 exports.redisGet = redisGet;
+exports.requestUserCleanup = requestUserCleanup;
 exports.getUserIdFromSocketId = getUserIdFromSocketId;
 exports.setUserIdFromSocketId = setUserIdFromSocketId;
 exports.deleteUserIdFromSocketId = deleteUserIdFromSocketId;
-exports.removeQueuesForUser = removeQueuesForUser;
