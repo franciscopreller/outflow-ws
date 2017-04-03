@@ -1,13 +1,13 @@
 function publish(context, queueName, payload) {
-  const pub = context.socket('PUSH');
+  const pub = context.socket('PUB');
   pub.connect(queueName, () => {
-    pub.write(JSON.stringify(payload), 'utf-8');
-    pub.end();
+    pub.write(JSON.stringify(payload), 'utf8');
+    pub.close();
   });
 }
 
 function redisGet(redis, key) {
-  return redis.get(key).then(JSON.parse);
+  return redis.get(key).then((result) => JSON.parse(result));
 }
 
 function getUserIdFromSocketId(redis, socketId) {
@@ -34,6 +34,7 @@ function removeQueuesForUser(redis, context, userId) {
   });
 }
 
+exports.publish = publish;
 exports.redisGet = redisGet;
 exports.getUserIdFromSocketId = getUserIdFromSocketId;
 exports.setUserIdFromSocketId = setUserIdFromSocketId;

@@ -22,11 +22,20 @@ module.exports.run = (worker) => {
 
   // Handle real-time connection and listen for events
   scServer.on('connection', (socket) => {
-    const socketId = socket.id;
-    Handlers.handleConnection(redis, socketId);
+    const sub = context.socket('SUB');
+    Handlers.handleConnection(socket, redis);
+    Handlers.handleSubscriber(socket, sub);
 
     // Socket bindings
-    socket.on('disconnect', Handlers.disconnectHandler(redis, socket, context));
-    socket.on('message', Handlers.messageHandler(redis, socket, context));
+    socket.on('disconnect', Handlers.disconnectHandler(socket, redis, sub));
+    socket.on('message', Handlers.messageHandler(socket, redis, context));
+
+    // Graceful exit
+    process.on('SIGTERM', () => process.exit(0));
+    process.on('exit', () => {
+      console.log('Exiting gracefully...');
+      sub.close();
+      context.close();
+    });
   });
 };

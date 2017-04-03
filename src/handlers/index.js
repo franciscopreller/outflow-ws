@@ -17,75 +17,59 @@ const handlerNames = getHandlerNames();
 const handlers = getHandlers();
 
 /**
- * Adds a queue injected by the subscriberHandler into cache
- *
- * @param queueName
- * @param userId
- * @param redis
- */
-function addQueueToCache(queueName, userId, redis) {
-  redis.get(`queues.${userId}`).then((results) => {
-    const queues = JSON.parse(results) || [];
-    const queueExists = queues.includes(queueName);
-    if (!queueExists) {
-      queues.push(queueName);
-      redis.set(`queues.${userId}`, JSON.stringify(queues));
-    }
-  });
-}
-
-/**
  * Sets the subscriber handler
  *
- * @param queueName
- * @param userId
- * @param redis
- * @param context
  * @param socket
+ * @param sub
  */
-function subscriberHandler(queueName, userId, redis, context, socket) {
-  const sub = context.socket('PULL');
+function handleSubscriber(socket, sub) {
+  const queueName = `ws.reply.${socket.id}`;
   sub.on('data', (data) => {
     try {
       const payload = JSON.parse(data);
       socket.emit('ws.message', payload);
     } catch (error) {
-      console.error('Could not parse JSON in subscriberHandler:', {
+      console.error('Could not parse JSON in handleSubscriber:', {
         error,
         queueName,
       });
     }
   });
   sub.connect(queueName);
-  addQueueToCache(queueName, userId, redis);
 }
 
 /**
  * Generic message handler
  *
- * @param redis
  * @param socket
+ * @param redis
  * @param context
  * @returns {function(*)}
  */
-function messageHandler(redis, socket, context) {
-  return (data) => {
+function messageHandler(socket, redis, context) {
+  return (message) => {
+    // Avoid special messages
+    if (message.charAt(0) === '#') return;
     let msg = {};
     try {
-      msg = Object.assign({}, JSON.parse(data));
-    } catch (err) {}
+      msg = JSON.parse(message.toString());
+    } catch (err) {
+      console.error(err);
+    }
 
     // if the message is marked as an event which has middleware, use that middleware handler
     if (msg.event && msg.event.charAt(0) !== '#') {
-      if (handlers && handlers[msg.event]) {
-        handlers[msg.event](redis, socket, context, msg.data);
-      }
-
-      // Send the connection request to the telnet server
-      const pub = context.socket('PUSH');
-      pub.connect(msg.event, () => {
-        pub.write(JSON.stringify(msg.data.payload), 'utf-8');
-        pub.end();
+      utils.getUserIdFromSocketId(redis, socket.id).then((userId) => {
+        const data = Object.assign({}, {
+          payload: msg.data.payload,
+          socketId: socket.id,
+          userId,
+        });
+        const pub = context.socket('PUSH');
+        pub.connect(msg.event, () => {
+          pub.write(JSON.stringify(data), 'utf8');
+          pub.close();
+        });
       });
     }
   };
@@ -94,12 +78,12 @@ function messageHandler(redis, socket, context) {
 /**
  * Handles all new socket connection
  *
+ * @param socket
  * @param redis
- * @param socketId
  */
-function handleConnection(redis, socketId) {
-  utils.setUserIdFromSocketId(redis, '#', socketId).then(() => {
-    console.log(`User connected from socket ${socketId}`);
+function handleConnection(socket, redis) {
+  utils.setUserIdFromSocketId(redis, '#', socket.id).then(() => {
+    console.log(`User connected from socket ${socket.id}`);
   }).catch((error) => {
     console.error('Could not create connection in cache', error);
   });
@@ -108,17 +92,18 @@ function handleConnection(redis, socketId) {
 /**
  * Handles all socket disconnections
  *
- * @param redis
  * @param socket
- * @param context
+ * @param redis
+ * @param sub
  * @returns {function()}
  */
-function disconnectHandler(redis, socket, context) {
+function disconnectHandler(socket, redis, sub) {
   return () => {
-    utils.getUserIdFromSocketId(redis, socket.id)
-      .then((userId) => utils.removeQueuesForUser(redis, context, userId))
-      .then(() => utils.deleteUserIdFromSocketId(redis, socket.id))
-      .then(() => console.log(`User disconnected from socket ${socket.id}`))
+    utils.deleteUserIdFromSocketId(redis, socket.id)
+      .then(() => {
+        console.log(`User disconnected from socket ${socket.id}`);
+        sub.close();
+      })
       .catch((error) => {
         console.error('Could not remove connection from cache', error);
       });
@@ -165,4 +150,4 @@ exports.handlerNames = handlerNames;
 exports.messageHandler = messageHandler;
 exports.handleConnection = handleConnection;
 exports.disconnectHandler = disconnectHandler;
-exports.subscriberHandler = subscriberHandler;
+exports.handleSubscriber = handleSubscriber;
