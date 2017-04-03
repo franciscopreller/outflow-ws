@@ -33,3 +33,8 @@ socketCluster.on('workerMessage', (id, data) => {
     data,
   });
 });
+
+process.on('uncaughtException', (err) => {
+  console.error('UnhandledRejection:', { err });
+  process.exit(0);
+});

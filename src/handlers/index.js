@@ -65,10 +65,11 @@ function messageHandler(socket, redis, context) {
           socketId: socket.id,
           userId,
         });
+
         const pub = context.socket('PUSH');
         pub.connect(msg.event, () => {
-          pub.write(JSON.stringify(data), 'utf8');
-          pub.close();
+            pub.write(JSON.stringify(data), 'utf8');
+            pub.close();
         });
       });
     }
@@ -98,16 +99,12 @@ function handleConnection(socket, redis) {
  * @returns {function()}
  */
 function disconnectHandler(socket, redis, sub) {
-  return () => {
-    utils.deleteUserIdFromSocketId(redis, socket.id)
-      .then(() => {
-        console.log(`User disconnected from socket ${socket.id}`);
-        sub.close();
-      })
-      .catch((error) => {
-        console.error('Could not remove connection from cache', error);
-      });
-  };
+  return () => utils.deleteUserIdFromSocketId(redis, socket.id)
+    .catch((error) => console.error('Could not remove connection from cache', error))
+    .then(() => {
+      console.log(`User disconnected from socket ${socket.id}`);
+      if (sub) sub.close();
+    });
 }
 
 /**

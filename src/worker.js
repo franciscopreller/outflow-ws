@@ -21,21 +21,20 @@ module.exports.run = (worker) => {
   httpServer.on('request', app);
 
   // Handle real-time connection and listen for events
-  scServer.on('connection', (socket) => {
+  scServer.on('connection', function connectionHandler(socket) {
     const sub = context.socket('SUB');
+
     Handlers.handleConnection(socket, redis);
     Handlers.handleSubscriber(socket, sub);
 
     // Socket bindings
     socket.on('disconnect', Handlers.disconnectHandler(socket, redis, sub));
     socket.on('message', Handlers.messageHandler(socket, redis, context));
-
-    // Graceful exit
-    process.on('SIGTERM', () => process.exit(0));
-    process.on('exit', () => {
-      console.log('Exiting gracefully...');
-      sub.close();
-      context.close();
-    });
   });
+
+  // Close context on exit
+  process.on('exit', () => context.close());
+
+  // Hook for forever
+  process.on('SIGTERM', () => process.exit(0));
 };
